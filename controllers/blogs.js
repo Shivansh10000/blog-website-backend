@@ -1,4 +1,5 @@
 import Blogs from '../models/Blogs.js';
+import Comment from '../models/Comments.js';
 
 export const createPost = async (req, res) => {
   try {
@@ -71,4 +72,97 @@ export const deletePost = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const getAllBlogs = async (req, res) => {
+  try {
+    const blogs = await Blogs.find().sort({ likes: 'desc' }); // Fetch all blogs and sort by descending likes
+    res.status(200).json(blogs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getAllBlogsByDate = async (req, res) => {
+  try {
+    const blogs = await Blogs.find().sort({ createdAt: 'desc' }); // Fetch all blogs and sort by descending creation date
+    res.status(200).json(blogs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const likePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user.id; // Get the user ID from req.user
+
+    // Find the blog post by ID
+    const blog = await Blogs.findById(postId);
+
+    if (!blog) {
+      return res.status(404).json({ error: 'Blog post not found' });
+    }
+
+    // Check if the user has already liked the post
+    const isLiked = blog.likes.includes(userId);
+    if (isLiked) {
+      // User has already liked the post, remove the like
+      blog.likes.pull(userId);
+
+      // Remove the post ID from the user's savedBlogs
+      req.user.savedBlogs.pull(postId);
+    } else {
+      // User hasn't liked the post, add the like
+      blog.likes.push(userId);
+
+      // Add the post ID to the user's savedBlogs
+      req.user.savedBlogs.push(postId);
+    }
+
+    // Save the updated blog post and user
+    await blog.save();
+    await req.user.save();
+
+    res.status(200).json(blog);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const createComment = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { content } = req.body;
+    const userId = req.user.id; // Get the user ID from req.user
+
+    // Find the blog post by ID
+    const blog = await Blogs.findById(postId);
+
+    if (!blog) {
+      return res.status(404).json({ error: 'Blog post not found' });
+    }
+
+    // Create a new comment
+    const newComment = new Comment({
+      content,
+      userId,
+    });
+
+    // Save the comment
+    const savedComment = await newComment.save();
+
+    // Add the comment ID to the blog post's comments array
+    blog.comments.push(savedComment._id);
+
+    // Save the updated blog post
+    await blog.save();
+
+    res.status(201).json(savedComment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+
 

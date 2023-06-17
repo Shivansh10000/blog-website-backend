@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import User from "../models/Users.js";
 
 export const verifyToken = async (req, res, next) => {
   try {
@@ -13,7 +14,15 @@ export const verifyToken = async (req, res, next) => {
     }
 
     const verified = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = verified;
+
+    // Retrieve the user with populated savedBlogs field
+    const user = await User.findById(verified.id).populate("savedBlogs");
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    req.user = user;
     next();
   } catch (err) {
     res.status(500).json({ error: err.message });
