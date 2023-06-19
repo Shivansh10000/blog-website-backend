@@ -1,5 +1,6 @@
 import Blogs from '../models/Blogs.js';
 import Comment from '../models/Comments.js';
+import User from '../models/Users.js';
 
 export const createPost = async (req, res) => {
   try {
@@ -20,11 +21,16 @@ export const createPost = async (req, res) => {
     });
 
     const savedBlog = await newBlog.save();
+
+    // Update the user's myPosts array with the new blog post's ID
+    await User.findByIdAndUpdate(createdBy, { $push: { myPosts: savedBlog._id } });
+
     res.status(201).json(savedBlog);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 export const updatePost = async (req, res) => {
   try {
@@ -67,34 +73,39 @@ export const deletePost = async (req, res) => {
     // Delete the post
     await Blogs.deleteOne({ _id: postId });
 
+    // Remove the post ID from the user's myPosts array
+    await User.findByIdAndUpdate(userId, { $pull: { myPosts: postId } });
+
     res.status(200).json({ message: 'Post deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
+
 export const getAllBlogs = async (req, res) => {
   try {
     const blogs = await Blogs.aggregate([
       {
         $lookup: {
-          from: 'users',
-          localField: 'createdBy',
-          foreignField: '_id',
-          as: 'createdBy',
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "createdBy",
         },
       },
       {
         $lookup: {
-          from: 'comments',
-          localField: 'comments',
-          foreignField: '_id',
-          as: 'comments',
+          from: "comments",
+          localField: "comments",
+          foreignField: "_id",
+          as: "comments",
         },
       },
       {
         $addFields: {
-          likesCount: { $size: '$likes' },
+          likesCount: { $size: "$likes" },
+          createdBy: { $arrayElemAt: ["$createdBy", 0] },
         },
       },
       {
@@ -102,9 +113,15 @@ export const getAllBlogs = async (req, res) => {
           title: 1,
           content: 1,
           likesCount: 1,
-          createdBy: { $arrayElemAt: ['$createdBy', 0] },
+          createdBy: {
+            _id: 1,
+            username: 1, // Add the desired properties, e.g., username
+            imageUrl: 1,
+          },
           createdAt: 1,
-          likes: 1, // Include the 'likes' field in the projection
+          likes: 1,
+          comments: 1,
+          imageUrl: 1,
         },
       },
       {
@@ -123,23 +140,24 @@ export const getAllBlogsByDate = async (req, res) => {
     const blogs = await Blogs.aggregate([
       {
         $lookup: {
-          from: 'users',
-          localField: 'createdBy',
-          foreignField: '_id',
-          as: 'createdBy',
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "createdBy",
         },
       },
       {
         $lookup: {
-          from: 'comments',
-          localField: 'comments',
-          foreignField: '_id',
-          as: 'comments',
+          from: "comments",
+          localField: "comments",
+          foreignField: "_id",
+          as: "comments",
         },
       },
       {
         $addFields: {
-          likesCount: { $size: '$likes' },
+          likesCount: { $size: "$likes" },
+          createdBy: { $arrayElemAt: ["$createdBy", 0] },
         },
       },
       {
@@ -147,9 +165,15 @@ export const getAllBlogsByDate = async (req, res) => {
           title: 1,
           content: 1,
           likesCount: 1,
-          createdBy: { $arrayElemAt: ['$createdBy', 0] },
+          createdBy: {
+            _id: 1,
+            username: 1, // Add the desired properties, e.g., username
+            imageUrl: 1,
+          },
           createdAt: 1,
-          likes: 1, // Include the 'likes' field in the projection
+          likes: 1,
+          comments: 1,
+          imageUrl: 1,
         },
       },
       {
@@ -162,6 +186,10 @@ export const getAllBlogsByDate = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+
+
 
 
 
