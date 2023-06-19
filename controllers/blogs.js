@@ -75,7 +75,43 @@ export const deletePost = async (req, res) => {
 
 export const getAllBlogs = async (req, res) => {
   try {
-    const blogs = await Blogs.find().sort({ likes: 'desc' }); // Fetch all blogs and sort by descending likes
+    const blogs = await Blogs.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'createdBy',
+          foreignField: '_id',
+          as: 'createdBy',
+        },
+      },
+      {
+        $lookup: {
+          from: 'comments',
+          localField: 'comments',
+          foreignField: '_id',
+          as: 'comments',
+        },
+      },
+      {
+        $addFields: {
+          likesCount: { $size: '$likes' },
+        },
+      },
+      {
+        $project: {
+          title: 1,
+          content: 1,
+          likesCount: 1,
+          createdBy: { $arrayElemAt: ['$createdBy', 0] },
+          createdAt: 1,
+          likes: 1, // Include the 'likes' field in the projection
+        },
+      },
+      {
+        $sort: { likesCount: -1 },
+      },
+    ]);
+
     res.status(200).json(blogs);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -84,12 +120,50 @@ export const getAllBlogs = async (req, res) => {
 
 export const getAllBlogsByDate = async (req, res) => {
   try {
-    const blogs = await Blogs.find().sort({ createdAt: 'desc' }); // Fetch all blogs and sort by descending creation date
+    const blogs = await Blogs.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'createdBy',
+          foreignField: '_id',
+          as: 'createdBy',
+        },
+      },
+      {
+        $lookup: {
+          from: 'comments',
+          localField: 'comments',
+          foreignField: '_id',
+          as: 'comments',
+        },
+      },
+      {
+        $addFields: {
+          likesCount: { $size: '$likes' },
+        },
+      },
+      {
+        $project: {
+          title: 1,
+          content: 1,
+          likesCount: 1,
+          createdBy: { $arrayElemAt: ['$createdBy', 0] },
+          createdAt: 1,
+          likes: 1, // Include the 'likes' field in the projection
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+    ]);
+
     res.status(200).json(blogs);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+
 
 export const likePost = async (req, res) => {
   try {
@@ -129,6 +203,8 @@ export const likePost = async (req, res) => {
   }
 };
 
+
+
 export const createComment = async (req, res) => {
   try {
     const { postId } = req.params;
@@ -162,6 +238,34 @@ export const createComment = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const getPostById = async (req, res) => {
+  const { postId } = req.params;
+
+  try {
+    const post = await Blogs.findById(postId)
+      .populate('createdBy', 'username')
+      .populate({
+        path: 'comments',
+        populate: {
+          path: 'userId',
+          select: 'username',
+        },
+      });
+
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    res.json(post);
+  } catch (error) {
+    console.error('Error retrieving post:', error);
+    res.status(500).json({ error: 'An error occurred while retrieving the post' });
+  }
+};
+
+
+
 
 
 

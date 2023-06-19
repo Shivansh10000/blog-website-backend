@@ -1,5 +1,5 @@
 import express from 'express';
-import { createPost, updatePost, deletePost, getAllBlogs, getAllBlogsByDate, likePost, createComment } from '../controllers/blogs.js';
+import { createPost, updatePost, deletePost, getAllBlogs, getAllBlogsByDate, likePost, createComment, getPostById } from '../controllers/blogs.js';
 import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -11,5 +11,6 @@ router.get('/posts', getAllBlogs); // Route for getting blogs by dislikes
 router.get('/posts/bydate', getAllBlogsByDate); // Route for getting blogs by date
 router.post('/posts/like/:postId', verifyToken, likePost); // Route for liking a blog post
 router.post('/posts/comments/:postId', verifyToken, createComment); // Route for creating a comment on a blog post
+router.get('/post/:postId', getPostById); // Route for getting an individual post by ID
 
 export default router;
