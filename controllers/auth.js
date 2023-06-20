@@ -75,3 +75,71 @@ export const getUserById = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Add this controller to fetch user information by ID
+export const getClickedUserById = async (req, res) => {
+  try {
+    const userId = req.params.userId; // Extract userId from request parameters
+    const user = await User.findById(userId).populate('savedBlogs'); // Fetch user by userId and populate savedBlogs field
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Return the user information
+    const { imageUrl, username, email, friends, savedBlogs, myPosts, createdAt } = user;
+    res.status(200).json({
+      imageUrl,
+      username,
+      email,
+      friends,
+      savedBlogs,
+      myPosts,
+      createdAt
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { username, email, password, imageUrl } = req.body;
+
+    // Find the user by ID
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update the user's profile fields
+    if (username) {
+      user.username = username;
+    }
+
+    if (email) {
+      user.email = email;
+    }
+
+    if (imageUrl) {
+      user.imageUrl = imageUrl;
+    }
+
+    if (password) {
+      // Hash the new password
+      const salt = await bcrypt.genSalt();
+      const passwordHash = await bcrypt.hash(password, salt);
+
+      user.password = passwordHash;
+    }
+
+    // Save the updated user
+    await user.save();
+
+    res.status(200).json({ message: 'Profile updated successfully', user });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
