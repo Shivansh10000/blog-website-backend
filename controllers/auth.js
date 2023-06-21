@@ -143,3 +143,18 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+// Other imports...
+
+export const logout = async (req, res) => {
+  try {
+    // Clear the user token by setting it to an empty string or null
+    req.user.token = '';
+    await req.user.save();
+
+    res.status(200).json({ message: 'Logout successful' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Other controllers...
