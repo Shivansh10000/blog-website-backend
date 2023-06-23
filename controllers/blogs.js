@@ -291,10 +291,3 @@ export const getPostById = async (req, res) => {
     res.status(500).json({ error: 'An error occurred while retrieving the post' });
   }
 };
-
-
-
-
-
-
-
